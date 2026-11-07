@@ -1,0 +1,15 @@
+/* zmogilna UI — wspólny pasek przewijania, zaznaczenie, fokus i kolor kontrolek.
+   Reguły z :where() mają zerową specyficzność i leżą przed stylami strony — strona może je nadpisać. */
+:root{--ui-scroll-track:var(--bg-alt,oklch(20% .03 145));--ui-scroll-thumb:var(--line-strong,oklch(46% .03 145/.55));--ui-scroll-thumb-hover:var(--gold,oklch(76% .14 88));accent-color:var(--gold,#c9a227)}
+*{scrollbar-width:thin;scrollbar-color:var(--ui-scroll-thumb) var(--ui-scroll-track)}
+*::-webkit-scrollbar{width:9px;height:9px}
+*::-webkit-scrollbar-track{background:var(--ui-scroll-track);border:1px solid var(--line,oklch(38% .03 145/.22));border-radius:999px}
+*::-webkit-scrollbar-thumb{min-height:30px;background:var(--ui-scroll-thumb);border:2px solid var(--ui-scroll-track);border-radius:999px;transition:background-color .16s ease-out}
+*::-webkit-scrollbar-thumb:hover,*::-webkit-scrollbar-thumb:active{background:var(--ui-scroll-thumb-hover)}
+*::-webkit-scrollbar-corner{background:var(--ui-scroll-track)}
+.recent-folder-strip,.favorites-strip,.comments-recent-strip{scrollbar-color:var(--ui-scroll-thumb) transparent}
+.recent-folder-strip::-webkit-scrollbar-track,.favorites-strip::-webkit-scrollbar-track,.comments-recent-strip::-webkit-scrollbar-track{background:transparent;border-color:transparent}
+.lightbox-comments-panel,.cmdk-list,dialog.guess-dialog{scrollbar-gutter:stable}
+::selection{background:var(--gold,#c9a227);color:#101c16}
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--gold,#c9a227);outline-offset:2px;border-radius:var(--focus-radius,6px)}
+@media (prefers-reduced-motion:reduce){*::-webkit-scrollbar-thumb{transition:none}}
