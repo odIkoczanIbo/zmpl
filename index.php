@@ -2959,22 +2959,48 @@ if ($photoSeoRow !== null) {
   .zm-top-btn.on{ opacity:1; visibility:visible; transform:translateY(0); }
   .zm-top-btn:hover{ border-color:var(--gold); color:var(--gold); }
   .zm-top-btn svg{ display:block; width:20px; height:20px; flex:0 0 auto; }
+  .zm-back-btn{
+    position:fixed; right:72px; bottom:18px; z-index:60;
+    width:46px; height:46px; border-radius:50%; padding:0;
+    background:var(--card); border:1px solid var(--line-strong);
+    color:var(--ink); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.25);
+    opacity:0; visibility:hidden; transform:translateY(10px);
+    transition:opacity .25s ease, transform .25s ease, visibility .25s, border-color .2s, color .2s;
+  }
+  .zm-back-btn.on{ opacity:1; visibility:visible; transform:translateY(0); }
+  .zm-back-btn:hover{ border-color:var(--gold); color:var(--gold); }
+  .zm-back-btn svg{ display:block; width:20px; height:20px; flex:0 0 auto; }
   @media (max-width:640px){
     .zm-top-btn{ right:14px; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); width:44px; height:44px; }
+    .zm-back-btn{ right:66px; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); width:44px; height:44px; }
   }
 </style>
+<button type="button" class="zm-back-btn" id="zmBackBtn" aria-label="Wróć do poprzedniej strony" title="Wstecz">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+</button>
 <button type="button" class="zm-top-btn" id="zmTopBtn" aria-label="Przewiń do góry" title="Do góry">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
 </button>
 <script>
   (function(){
     const btn = document.getElementById('zmTopBtn');
+    const backBtn = document.getElementById('zmBackBtn');
     if(!btn) return;
     function pos(){
       const se = document.scrollingElement || document.documentElement;
       return Math.max(window.pageYOffset || 0, se.scrollTop || 0, document.body.scrollTop || 0);
     }
-    function toggle(){ btn.classList.toggle('on', pos() > 300); }
+    function toggle(){
+      const visible = pos() > 300;
+      btn.classList.toggle('on', visible);
+      if(backBtn) backBtn.classList.toggle('on', visible);
+    }
+    if(backBtn){
+      backBtn.addEventListener('click', function(){
+        window.history.back();
+      });
+    }
     btn.addEventListener('click', function(){
       const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.scrollTo({ top:0, behavior: reduce ? 'auto' : 'smooth' });
