@@ -141,6 +141,31 @@ function zm_home_community(PDO $pdo): array
             $topPlacesStmt->fetchAll(PDO::FETCH_ASSOC),
             static fn(array $r): bool => (int) $r['photo_count'] > 0
         ));
+
+        // Miejscowości przypisane do poszczególnych gmin — wyłącznie nazwy
+        // folderów podrzędnych. Ranking, wykres i liczba zdjęć pozostają
+        // oparte na dotychczasowym zestawieniu kategorii (gmin).
+        if ($data['topPlaces']) {
+            $localitiesStmt = $pdo->query(
+                "SELECT p.category_id, TRIM(p.place) AS locality
+                 FROM photos p
+                 WHERE p.published = 1 AND p.moderation_status = 'approved'
+                   AND (p.kind IS NULL OR p.kind = 'image')
+                   AND p.place IS NOT NULL AND TRIM(p.place) <> ''
+                 GROUP BY p.category_id, TRIM(p.place)
+                 ORDER BY p.category_id ASC, locality ASC"
+            );
+            $localitiesByCategory = [];
+            foreach ($localitiesStmt->fetchAll(PDO::FETCH_ASSOC) as $localityRow) {
+                $categoryId = (int) $localityRow['category_id'];
+                $localityName = (string) $localityRow['locality'];
+                $localitiesByCategory[$categoryId][] = $localityName;
+            }
+            foreach ($data['topPlaces'] as &$topPlace) {
+                $topPlace['localities'] = $localitiesByCategory[(int) $topPlace['id']] ?? [];
+            }
+            unset($topPlace);
+        }
 // --- najpopularniejsze kadry (najwięcej polubień) ---
         $topPhotosStmt = $pdo->query(
             "SELECT p.id, p.title, p.filename, p.place, p.gmina_detected, p.geo_json,
