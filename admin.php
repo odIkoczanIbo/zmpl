@@ -2088,6 +2088,7 @@ header('X-Robots-Tag: noindex, nofollow', false);
     if(['comments','photos','projects','attraction','links','users','traffic','security','maintenance','settings'].includes(savedView) && savedView !== 'comments'){
       switchView(savedView);
     }
+    if(window.zmRestorePhotoReport) window.zmRestorePhotoReport();
   }
 
   el('loginForm').addEventListener('submit', async (e) => {
@@ -5282,7 +5283,7 @@ header('X-Robots-Tag: noindex, nofollow', false);
         + '</div>'
         + (it.note ? '<div class="report-note">' + esc(it.note) + '</div>' : '')
         + '<div class="report-actions">'
-          + (link ? '<a href="' + link + '" target="_blank" rel="noopener">Pokaż</a>' : '')
+          + (photoLink ? '<a href="' + esc(photoLink) + '">Pokaż</a>' : '')
           + (it.comment_missing ? '' : '<button type="button" class="danger" data-act="del">Usuń komentarz</button>')
           + '<button type="button" data-act="dismiss">Odrzuć</button>'
         + '</div>'
@@ -5302,8 +5303,18 @@ header('X-Robots-Tag: noindex, nofollow', false);
       const sub = [];
       if(it.author) sub.push('autor: ' + esc(it.author));
       if(it.moderation_status && it.moderation_status !== 'approved') sub.push(esc(it.moderation_status));
-      const thumb = (!missing && it.thumb)
-        ? '<a class="report-thumb" href="' + link + '" target="_blank" rel="noopener"><img src="' + esc(it.thumb) + '" alt="" loading="lazy"></a>'
+      let photoLink = '';
+      if(link){
+        try{
+          const photoUrl = new URL(link, location.href);
+          const returnUrl = new URL('admin.php', location.href);
+          returnUrl.searchParams.set('restore_photo_report', String(it.id));
+          photoUrl.searchParams.set('return', returnUrl.pathname + returnUrl.search);
+          photoLink = photoUrl.pathname + photoUrl.search + photoUrl.hash;
+        }catch(_){}
+      }
+      const thumb = (!missing && it.thumb && photoLink)
+        ? '<a class="report-thumb" href="' + esc(photoLink) + '"><img src="' + esc(it.thumb) + '" alt="" loading="lazy"></a>'
         : '';
       return '<div class="report-item" data-id="' + it.id + '">'
         + '<div class="report-head">'
@@ -5349,10 +5360,32 @@ header('X-Robots-Tag: noindex, nofollow', false);
     renderAll();
   }
 
+  let restorePhotoReportId = 0;
+  try{
+    const restoreParams = new URL(location.href).searchParams;
+    restorePhotoReportId = parseInt(restoreParams.get('restore_photo_report') || '', 10) || 0;
+  }catch(_){}
+
   function adoptPhotos(d){
     if(!d || !Array.isArray(d.items)) return;
     photoItems = d.items;
     renderAll();
+    if(restorePhotoReportId){
+      const target = el('reportsPhotosList').querySelector('.report-item[data-id="' + restorePhotoReportId + '"]');
+      if(target){
+        requestAnimationFrame(() => {
+          target.scrollIntoView({ behavior:'smooth', block:'center' });
+          target.classList.add('is-return-target');
+          setTimeout(() => target.classList.remove('is-return-target'), 1800);
+        });
+      }
+      restorePhotoReportId = 0;
+      try{
+        const cleanUrl = new URL(location.href);
+        cleanUrl.searchParams.delete('restore_photo_report');
+        history.replaceState(history.state, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      }catch(_){}
+    }
   }
 
   el('reportsList').addEventListener('click', async e => {
@@ -5426,8 +5459,16 @@ header('X-Robots-Tag: noindex, nofollow', false);
 
   function openReports(){
     el('reportsBackdrop').classList.add('open');
+    if(restorePhotoReportId) showReportsTab('photos');
     callApi('comment_reports_list').then(adopt);
     callApi('photo_reports_list').then(adoptPhotos);
+  }
+  window.zmRestorePhotoReport = function(){
+    if(!restorePhotoReportId) return;
+    openReports();
+  };
+  if(restorePhotoReportId && el('adminPanel').style.display === 'block'){
+    window.zmRestorePhotoReport();
   }
   function closeReports(){ el('reportsBackdrop').classList.remove('open'); }
   el('reportsBtn').addEventListener('click', openReports);
