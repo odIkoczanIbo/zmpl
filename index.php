@@ -627,10 +627,14 @@ if ($photoSeoRow !== null) {
   .place-count{ color:var(--ink-dim); font:10.5px 'JetBrains Mono', monospace; text-align:right; }
   /* najbardziej lubiane kadry */
   .top-photos{ display:grid; gap:8px; }
-  .top-photo{ position:relative; display:grid; grid-template-columns:68px minmax(0,1fr); align-items:center; gap:11px; text-decoration:none; }
+  .top-photo{ position:relative; display:grid; grid-template-columns:68px minmax(0,1fr); align-items:center; gap:11px; min-width:0; }
+  .top-photo-image{ display:block; width:68px; height:52px; }
   .top-photo img{ width:68px; height:52px; object-fit:cover; border-radius:7px; border:1px solid var(--line); }
   .top-photo-meta{ display:grid; gap:3px; min-width:0; }
-  .top-photo-title{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); font-size:13px; }
+  .top-photo-title{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); font-size:13px; text-decoration:none; }
+  .top-photo-title:hover{ color:var(--gold); }
+  .top-photo-author{ display:block; width:max-content; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink-dim); font-size:11px; text-decoration:none; }
+  .top-photo-author:hover{ color:var(--gold); text-decoration:underline; }
   .top-photo-likes{ color:var(--gold); font:10.5px 'JetBrains Mono', monospace; }
   /* tygodniowa aktywność */
   .community-activity{ margin-top:16px; padding:20px; background:var(--bg-alt); border:1px solid var(--line); border-radius:14px; }
