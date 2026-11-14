@@ -3818,15 +3818,55 @@ async function countAllPhotos(folderId, seenIds){
     scrollGal();
   }
 
+  // Otwórz konkretny podfolder miejscowości w wybranej gminie.
+  // Nie wyszukujemy samej nazwy w katalogu głównym, bo nazwa miejscowości
+  // może być identyczna z nazwą gminy (np. Mogilno).
+  async function openLocalityFolderByName(parentName, localityName){
+    const parentNeedle = String(parentName || '').trim().toLowerCase();
+    const childNeedle = String(localityName || '').trim().toLowerCase();
+    if(!parentNeedle || !childNeedle) return;
+    const scrollGal = () => {
+      const g = document.getElementById('galeria') || el('galleryRoot');
+      if(g) g.scrollIntoView({ behavior:'smooth', block:'start' });
+    };
+    let folders = state.rootFolders || [];
+    if(!folders.length && state.rootId){
+      try{
+        const q = encodeURIComponent("'" + state.rootId + "' in parents and trashed = false and mimeType = '" + FOLDER_MIME + "'");
+        const fields = encodeURIComponent('files(id,name)');
+        const res = await fetch(CONFIG.api + '?q=' + q + '&fields=' + fields + '&pageSize=200', { cache:'no-store' });
+        const data = await res.json();
+        folders = data.files || [];
+        state.rootFolders = folders;
+      }catch(_){ folders = []; }
+    }
+    const parent = folders.find(folder => String(folder.name || '').trim().toLowerCase() === parentNeedle);
+    if(!parent){ scrollGal(); return; }
+    try{
+      const q = encodeURIComponent("'" + parent.id + "' in parents and trashed = false and mimeType = '" + FOLDER_MIME + "'");
+      const fields = encodeURIComponent('files(id,name)');
+      const res = await fetch(CONFIG.api + '?q=' + q + '&fields=' + fields + '&pageSize=200', { cache:'no-store' });
+      const data = await res.json();
+      const child = (data.files || []).find(folder => String(folder.name || '').trim().toLowerCase() === childNeedle);
+      if(!child){ scrollGal(); return; }
+      state.path = [{ id: parent.id, name: parent.name }, { id: child.id, name: child.name }];
+      fetchFolder(true);
+      pushGalleryHistory();
+      scrollGal();
+    }catch(_){ scrollGal(); }
+  }
   // Sekcja „Najczęściej fotografowane miejsca”: klik w nazwę → folder w galerii.
   // Delegacja, bo panel społeczności podmienia HTML co ~20 s.
   document.addEventListener('click', e => {
     const btn = e.target && e.target.closest ? e.target.closest('[data-open-folder]') : null;
     if(!btn) return;
+    const parentName = (btn.getAttribute('data-open-folder-parent') || '').trim();
+    const localityName = (btn.getAttribute('data-open-folder-locality') || '').trim();
     const name = (btn.getAttribute('data-open-folder') || '').trim();
-    if(!name) return;
+    if(!name && !(parentName && localityName)) return;
     e.preventDefault();
-    openFolderByName(name);
+    if(parentName && localityName) openLocalityFolderByName(parentName, localityName);
+    else openFolderByName(name);
   });
 
   // ---------- pływający przycisk powrotu na górę ----------
