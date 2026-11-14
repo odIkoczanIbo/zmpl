@@ -170,9 +170,13 @@ function zm_home_community(PDO $pdo): array
         $topPhotosStmt = $pdo->query(
             "SELECT p.id, p.title, p.filename, p.place, p.gmina_detected, p.geo_json,
                     c.name AS category_name,
+                    u.id AS uploader_id, u.username AS uploader_username,
+                    u.display_name AS uploader_display_name,
                     (SELECT COUNT(*) FROM photo_likes pl WHERE pl.photo_id = p.id) AS like_count
              FROM photos p
              LEFT JOIN categories c ON c.id = p.category_id
+             LEFT JOIN users u ON u.id = p.submitted_by_user_id
+                              AND u.profile_public = 1 AND u.is_banned = 0
              WHERE p.published = 1 AND p.moderation_status = 'approved'
                AND (p.kind IS NULL OR p.kind = 'image')
              ORDER BY like_count DESC, p.id DESC
