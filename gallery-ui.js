@@ -4399,7 +4399,11 @@ async function countAllPhotos(folderId, seenIds){
       if(retRaw){
         try{
           const ru = new URL(retRaw, location.href);
-          if(ru.origin === location.origin && ru.pathname.replace(/\/+$/,'').endsWith('/atrakcje.php')){
+          const returnPath = ru.pathname.replace(/\\/+$/,'');
+          const isAttractionsReturn = returnPath.endsWith('/atrakcje.php');
+          const isAdminReportReturn = returnPath.endsWith('/admin.php')
+            && parseInt(ru.searchParams.get('restore_photo_report') || '', 10) > 0;
+          if(ru.origin === location.origin && (isAttractionsReturn || isAdminReportReturn)){
             lightboxReturnUrl = ru.pathname + ru.search;
           }
         }catch(_){}
