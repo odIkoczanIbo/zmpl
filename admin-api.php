@@ -4894,10 +4894,9 @@ if ($action === 'user_edit') {
 }
 
 /**
- * Ręczne utworzenie konta w panelu. E-mail jest opcjonalny (puste = NULL),
- * login i hasło wymagane. Konto zawsze dostaje rolę `user`, prywatny profil
- * i rangę specjalną VIP — widoczną tylko w administracji, pomijaną w
- * statystykach do chwili włączenia „Profilu publicznego” przez użytkownika.
+ * Ręczne utworzenie konta w panelu. Konto zawsze ma rolę `user` i prywatny
+ * profil. Bez wyboru rangi pozostaje przy zwykłej randze wynikającej z punktów
+ * (na starcie najniższej); rangi ręczne i specjalne są opcjonalne.
  */
 if ($action === 'user_create') {
     $username = trim((string) ($data['username'] ?? ''));
@@ -4949,25 +4948,43 @@ if ($action === 'user_create') {
         ]);
     }
 
-    $vipRankId = zm_vip_rank_id($pdo, true);
-    if ($vipRankId === null) {
-        zm_fail(500, 'vip_rank_missing', [
-            'message' => 'Nie udało się przygotować rangi VIP. Spróbuj ponownie.',
-        ]);
+    // 0 oznacza automatyczną zwykłą rangę (z punktów), bez nadpisania.
+    $rankId = (int) ($data['rank_id'] ?? 0);
+    $specialRankId = (int) ($data['special_rank_id'] ?? 0);
+
+    if ($rankId < 0 || $specialRankId < 0) {
+        zm_fail(422, 'bad_rank', ['message' => 'Nieprawidłowa ranga.']);
+    }
+    if ($rankId > 0) {
+        $rd = $pdo->prepare('SELECT id, special FROM rank_defs WHERE id = :id');
+        $rd->execute(['id' => $rankId]);
+        $rdRow = $rd->fetch();
+        if (!$rdRow || !empty($rdRow['special'])) {
+            zm_fail(422, 'bad_rank', ['message' => 'Wybierz zwykłą rangę z dostępnej listy.']);
+        }
+    }
+    if ($specialRankId > 0) {
+        $rd = $pdo->prepare('SELECT id, special FROM rank_defs WHERE id = :id');
+        $rd->execute(['id' => $specialRankId]);
+        $rdRow = $rd->fetch();
+        if (!$rdRow || empty($rdRow['special'])) {
+            zm_fail(422, 'bad_special_rank', ['message' => 'Wybierz rangę specjalną z dostępnej listy.']);
+        }
     }
 
     try {
         $pdo->prepare(
             "INSERT INTO users
-                (username, email, password_hash, display_name, role, profile_public, special_rank, created_at)
+                (username, email, password_hash, display_name, role, profile_public, rank_override, special_rank, created_at)
              VALUES
-                (:u, :e, :ph, :d, 'user', 0, :vip, NOW())"
+                (:u, :e, :ph, :d, 'user', 0, :rank, :special, NOW())"
         )->execute([
             'u' => $username,
             'e' => $email,
             'ph' => password_hash($password, PASSWORD_DEFAULT),
             'd' => $displayName,
-            'vip' => $vipRankId,
+            'rank' => $rankId > 0 ? $rankId : null,
+            'special' => $specialRankId > 0 ? $specialRankId : null,
         ]);
     } catch (PDOException $e) {
         if ((int) ($e->errorInfo[1] ?? 0) === 1062) {
@@ -4984,7 +5001,7 @@ if ($action === 'user_create') {
         'admin_action',
         'warn',
         (string) $admin['username'],
-        'utworzono konto #' . $id . ' (' . $username . ', ranga VIP)'
+        'utworzono konto #' . $id . ' (' . $username . ', zwykła ranga: ' . ($rankId > 0 ? (string) $rankId : 'automatyczna') . ', specjalna: ' . ($specialRankId > 0 ? (string) $specialRankId : 'brak') . ')'
     );
 
     echo json_encode([
@@ -4996,7 +5013,8 @@ if ($action === 'user_create') {
             'email' => $email ?? '',
             'role' => 'user',
             'profile_public' => false,
-            'rank_special_name' => 'VIP',
+            'rank_id' => $rankId > 0 ? $rankId : null,
+            'rank_special_id' => $specialRankId > 0 ? $specialRankId : null,
         ],
     ], JSON_UNESCAPED_UNICODE);
     exit;
