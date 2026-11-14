@@ -4399,7 +4399,7 @@ async function countAllPhotos(folderId, seenIds){
       if(retRaw){
         try{
           const ru = new URL(retRaw, location.href);
-          const returnPath = ru.pathname.replace(/\\/+$/,'');
+          const returnPath = ru.pathname.replace(/\/+$/,'');
           const isAttractionsReturn = returnPath.endsWith('/atrakcje.php');
           const isAdminReportReturn = returnPath.endsWith('/admin.php')
             && parseInt(ru.searchParams.get('restore_photo_report') || '', 10) > 0;
