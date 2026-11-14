@@ -607,6 +607,21 @@ if ($photoSeoRow !== null) {
     transition:color .18s ease;
   }
   a.place-name:hover, button.place-name:hover{ color:var(--gold); }
+  .place-folder-tree{ display:grid; gap:5px; min-width:0; }
+  .place-gmina-folder,.place-locality-folder{ display:flex; align-items:center; gap:7px; min-width:0; }
+  .place-gmina-folder svg,.place-locality-folder svg{
+    width:16px; height:16px; flex:0 0 16px; fill:none; stroke:var(--gold);
+    stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round;
+  }
+  .place-gmina-folder span,.place-locality-folder span{
+    min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .place-locality-folders{
+    display:grid; gap:5px; margin-left:9px; padding-left:17px;
+    border-left:1px solid var(--line-strong);
+  }
+  .place-locality-folder{ color:var(--ink-dim); font-size:11.5px; }
+  .place-locality-folder svg{ width:14px; height:14px; flex-basis:14px; stroke:var(--ink-dim); }
   .place-bar{ height:6px; overflow:hidden; border-radius:999px; background:var(--card); border:1px solid var(--line); }
   .place-bar i{ display:block; height:100%; background:linear-gradient(90deg,var(--teal),var(--gold)); }
   .place-count{ color:var(--ink-dim); font:10.5px 'JetBrains Mono', monospace; text-align:right; }
