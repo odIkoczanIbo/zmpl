@@ -1047,7 +1047,7 @@ header('X-Robots-Tag: noindex, nofollow', false);
         </select>
         <input type="number" class="admin-search" id="usrMinPoints" min="0" step="1" style="max-width:120px;" placeholder="Min. punktów" title="Minimalna liczba punktów">
         <button type="button" class="tool-btn" id="usrResetBtn" title="Wyczyść filtry">Wyczyść</button>
-        <button type="button" class="tool-btn" id="usrAddBtn" title="Utwórz konto ręcznie (ranga VIP)">+ Dodaj użytkownika</button>
+        <button type="button" class="tool-btn" id="usrAddBtn" title="Utwórz konto ręcznie">+ Dodaj użytkownika</button>
         <button type="button" class="tool-btn" id="usrRanksBtn" title="Edycja rang i progów">Rangi</button>
       </div>
 
@@ -1504,7 +1504,7 @@ header('X-Robots-Tag: noindex, nofollow', false);
     <div class="admin-user-head">
       <div>
         <h2>Dodaj użytkownika</h2>
-        <span class="muted">Konto dostaje rangę VIP, prywatny profil i nie ma uprawnień administratora.</span>
+        <span class="muted">Nowe konto jest zwykłym użytkownikiem z prywatnym profilem. Rangę możesz ustawić ręcznie.</span>
       </div>
       <button type="button" class="modal-cancel modal-close-x" id="usrAddClose" aria-label="Zamknij">×</button>
     </div>
@@ -1523,10 +1523,20 @@ header('X-Robots-Tag: noindex, nofollow', false);
         <label for="uaPassword">Hasło</label>
         <input type="password" id="uaPassword" required minlength="8" autocomplete="new-password" placeholder="min. 8 znaków">
 
+        <label for="uaRankSel">Ranga (z punktów)</label>
+        <select id="uaRankSel">
+          <option value="0">Automatyczna (z punktów) — zwykły użytkownik</option>
+        </select>
+
+        <label for="uaSpSel">Ranga specjalna</label>
+        <select id="uaSpSel">
+          <option value="0">Brak rangi specjalnej</option>
+        </select>
+
         <p class="muted" style="font-size:12px; line-height:1.55; margin:12px 0 0;">
-          VIP jest widoczny tylko w panelu administracyjnym. Konto nie liczy się w statystykach,
-          dopóki użytkownik sam nie włączy „Profilu publicznego”. W trakcie przerwy technicznej
-          może się zalogować, ale pozostaje zwykłym użytkownikiem.
+          Domyślnie konto otrzymuje zwykłą rangę wynikającą z punktów. VIP i inne rangi specjalne
+          nie są nadawane automatycznie — wybierz je tylko wtedy, gdy chcesz.
+          Konto nie ma uprawnień administratora.
         </p>
 
         <div class="modal-actions">
@@ -5570,6 +5580,8 @@ header('X-Robots-Tag: noindex, nofollow', false);
     el('usrActive').textContent = state.active;
     fillRankSelect(el('umRankSel'), 0);
     fillSpecialRankSelect(el('umSpSel'), 0);
+    fillRankSelect(el('uaRankSel'), 0);
+    fillSpecialRankSelect(el('uaSpSel'), 0);
   }
 
   function fillRankSelect(sel, selected){
@@ -5731,10 +5743,12 @@ header('X-Robots-Tag: noindex, nofollow', false);
         username,
         display_name: displayName,
         email,
-        password
+        password,
+        rank_id: parseInt(el('uaRankSel').value, 10) || 0,
+        special_rank_id: parseInt(el('uaSpSel').value, 10) || 0
       });
       if(d && d.ok){
-        toast('Utworzono konto VIP: ' + d.user.username);
+        toast('Utworzono konto: ' + d.user.username);
         closeAddUser();
         refresh();
       }
