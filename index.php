@@ -537,13 +537,16 @@ if ($photoSeoRow !== null) {
      siebie jest fizycznie niemożliwe, a przy długich danych po prostu
      się zawija. */
   .contrib-list{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
-  .contrib-card{
+  .contrib-card{ min-width:0; }
+  .contrib-card-link{
     display:grid; grid-template-columns:auto minmax(0,1fr);
     align-items:center; gap:11px; min-width:0; padding:10px;
     border:1px solid transparent; border-radius:10px;
+    color:inherit; text-decoration:none;
     transition:background .2s,border-color .2s;
   }
-  .contrib-card:hover{ background:var(--card); border-color:var(--line-strong); }
+  .contrib-card-link:hover{ background:var(--card); border-color:var(--line-strong); }
+  .contrib-card-link:focus-visible{ outline:1px solid var(--gold); outline-offset:2px; }
   /* Blokada „linkowego” zachowania rankingu na telefonie — trzy warstwy,
      bo każda zamyka inny mechanizm systemu:
        1. -webkit-tap-highlight-color – podświetlenie aktywnego dotyku,
@@ -573,16 +576,8 @@ if ($photoSeoRow !== null) {
   .contrib-body{ min-width:0; display:grid; gap:5px; }
   .contrib-top{ display:flex; align-items:baseline; gap:7px; min-width:0; }
   .contrib-top .member-name{ flex:1 1 auto; min-width:0; }
-  /* Nazwa użytkownika to jedyny klikalny element w karcie. Bez podkreślenia
-     (globalne `a` go nie dodaje, ale jawnie to wymuszamy), żeby wyglądała
-     jak tekst, a nie odnośnik. Stan hover/focus jest jedyną wskazówką, że
-     da się w nią kliknąć. */
-  .contrib-name{
-    text-decoration:none; color:inherit;
-    transition:color .15s;
-  }
-  .contrib-name:hover{ color:var(--gold); }
-  .contrib-name:focus-visible{ outline:1px solid var(--gold); outline-offset:2px; }
+  /* Nazwa zachowuje wygląd zwykłego tekstu; cały wiersz jest linkiem. */
+  .contrib-name{ color:inherit; }
   /* Punkty jako osobny pill — nie mieszają się z licznikami aktywności
      ani nie skracają nazwy użytkownika bardziej niż trzeba. */
   .contrib-points{
