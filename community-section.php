@@ -116,7 +116,22 @@
                 $pct = $maxCount > 0 ? max(8, (int) round((int) $place['photo_count'] / $maxCount * 100)) : 8;
               ?>
               <li class="place-row">
-                <button type="button" class="place-name" data-open-folder="<?= zm_home_escape($place['name']) ?>" title="Otwórz w galerii: <?= zm_home_escape($place['name']) ?>"><?= zm_home_escape($place['name']) ?></button>
+                <div class="place-folder-tree">
+                  <button type="button" class="place-name place-gmina-folder" data-open-folder="<?= zm_home_escape($place['name']) ?>" title="Otwórz folder gminy: <?= zm_home_escape($place['name']) ?>">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 6.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>
+                    <span><?= zm_home_escape($place['name']) ?></span>
+                  </button>
+                  <?php if (!empty($place['localities'])): ?>
+                    <div class="place-locality-folders" aria-label="Miejscowości w gminie <?= zm_home_escape($place['name']) ?>">
+                      <?php foreach ($place['localities'] as $locality): ?>
+                        <div class="place-locality-folder">
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 6.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>
+                          <span><?= zm_home_escape($locality) ?></span>
+                        </div>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
+                </div>
                 <span class="place-bar"><i style="width:<?= $pct ?>%"></i></span>
                 <span class="place-count"><?= (int) $place['photo_count'] ?></span>
               </li>
