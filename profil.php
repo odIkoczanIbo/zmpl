@@ -541,6 +541,20 @@ button.social-count:hover b{ color:var(--gold) }
 #pplList .people-action.danger{color:#d98275}
 #pplList .people-action:disabled{opacity:.55;cursor:wait}
 #pplList .people-action-status{flex-basis:100%;margin:0 0 0 49px;color:var(--ink-dim);font-size:11px}
+.people-confirm-backdrop{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(5,10,7,.72);backdrop-filter:blur(5px)}
+.people-confirm-backdrop[hidden]{display:none}
+.people-confirm-card{width:min(100%,390px);box-sizing:border-box;padding:27px 25px 22px;border:1px solid var(--line-strong);border-radius:18px;background:var(--card);color:var(--ink);box-shadow:0 22px 70px rgba(0,0,0,.34);text-align:center;animation:peopleConfirmIn .18s ease-out}
+@keyframes peopleConfirmIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.people-confirm-icon{width:48px;height:48px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(217,130,117,.35);border-radius:15px;background:rgba(217,130,117,.09);color:#d98275}
+.people-confirm-icon svg{width:23px;height:23px}
+.people-confirm-card h3{margin:0 0 9px;font:600 19px 'Fraunces',serif;color:var(--ink)}
+.people-confirm-card p{margin:0 auto 22px;max-width:310px;color:var(--ink-dim);font:13px/1.6 'Inter',sans-serif}
+.people-confirm-actions{display:flex;justify-content:center;gap:9px}
+.people-confirm-actions button{min-height:39px;padding:0 17px;border-radius:9px;font:600 11px 'JetBrains Mono',monospace;cursor:pointer;transition:filter .15s,transform .15s}
+.people-confirm-actions button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.people-confirm-cancel{border:1px solid var(--line-strong);background:transparent;color:var(--ink-dim)}
+.people-confirm-accept{border:1px solid rgba(217,130,117,.55);background:rgba(217,130,117,.14);color:#d98275}
+.people-confirm-accept.is-block{border-color:rgba(201,162,39,.5);background:rgba(201,162,39,.13);color:var(--gold)}
 @media(max-width:480px){
   #pplList .people-row{gap:9px;padding:8px 6px}
   #pplList .member-avatar{width:36px;height:36px;flex-basis:36px}
@@ -1554,6 +1568,19 @@ button.social-count:hover b{ color:var(--gold) }
     <div class="sub-list" id="pplList" style="margin-top:16px"><p class="note">Wczytywanie…</p></div>
   </div>
 </div>
+<div class="people-confirm-backdrop" id="peopleConfirm" hidden>
+  <section class="people-confirm-card" role="dialog" aria-modal="true" aria-labelledby="peopleConfirmTitle" aria-describedby="peopleConfirmText">
+    <div class="people-confirm-icon" id="peopleConfirmIcon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+    </div>
+    <h3 id="peopleConfirmTitle">Potwierdź działanie</h3>
+    <p id="peopleConfirmText"></p>
+    <div class="people-confirm-actions">
+      <button type="button" class="people-confirm-cancel" id="peopleConfirmCancel">Anuluj</button>
+      <button type="button" class="people-confirm-accept" id="peopleConfirmAccept">Potwierdź</button>
+    </div>
+  </section>
+</div>
 <script>
 (function(){
   const backdrop = document.getElementById('pplBackdrop');
@@ -1563,6 +1590,39 @@ button.social-count:hover b{ color:var(--gold) }
   const subEl    = document.getElementById('pplSub');
   const searchEl = document.getElementById('pplSearch');
   const closeBtn = document.getElementById('pplClose');
+  const confirmBox = document.getElementById('peopleConfirm');
+  const confirmTitle = document.getElementById('peopleConfirmTitle');
+  const confirmText = document.getElementById('peopleConfirmText');
+  const confirmAccept = document.getElementById('peopleConfirmAccept');
+  const confirmCancel = document.getElementById('peopleConfirmCancel');
+  let confirmResolve = null;
+  function askAction(action, userName){
+    return new Promise(resolve => {
+      confirmResolve = resolve;
+      const blocking = action === 'block';
+      confirmTitle.textContent = blocking ? 'Zablokować użytkownika?' : 'Przestać obserwować?';
+      confirmText.textContent = blocking
+        ? 'Czy na pewno chcesz zablokować ' + userName + '? Ta osoba nie będzie mogła Cię obserwować ani wysyłać Ci wiadomości.'
+        : 'Czy na pewno chcesz przestać obserwować ' + userName + '?';
+      confirmAccept.textContent = blocking ? 'Zablokuj' : 'Przestań obserwować';
+      confirmAccept.classList.toggle('is-block', blocking);
+      confirmBox.hidden = false;
+      confirmAccept.focus();
+    });
+  }
+  function closeConfirm(answer){
+    if(confirmBox.hidden) return;
+    confirmBox.hidden = true;
+    const resolve = confirmResolve;
+    confirmResolve = null;
+    if(resolve) resolve(answer);
+  }
+  confirmAccept.addEventListener('click', () => closeConfirm(true));
+  confirmCancel.addEventListener('click', () => closeConfirm(false));
+  confirmBox.addEventListener('click', e => { if(e.target === confirmBox) closeConfirm(false); });
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && !confirmBox.hidden) closeConfirm(false);
+  });
   const myId     = <?= (int) $row['id'] ?>;
   const CAN_MANAGE = <?= !empty($isOwner) ? 'true' : 'false' ?>;
   const CSRF     = <?= json_encode(zm_csrf_token()) ?>;
@@ -1664,8 +1724,12 @@ button.social-count:hover b{ color:var(--gold) }
     const userId = Number(button.dataset.user);
     const action = button.dataset.personAction;
     if(!userId || button.disabled) return;
-    if(action === 'unfollow' && !window.confirm('Przestać obserwować tego użytkownika?')) return;
-    if(action === 'block' && !window.confirm('Zablokować tego użytkownika? Nie będzie mógł Cię obserwować ani wysyłać Ci wiadomości.')) return;
+    const personRow = button.closest('[data-person-id]');
+    const personName = personRow ? (personRow.querySelector('.member-name')?.textContent || 'tego użytkownika').trim() : 'tego użytkownika';
+    if(action === 'unfollow' || action === 'block'){
+      const accepted = await askAction(action, personName);
+      if(!accepted) return;
+    }
     button.disabled = true;
     try{
       if(action === 'unfollow'){
