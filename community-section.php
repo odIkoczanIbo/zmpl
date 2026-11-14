@@ -152,10 +152,26 @@
                     $tpTitle = trim((string) ($tp['title'] ?? '')) ?: ('kadr ' . (int) $tp['id']);
                 }
               ?>
-              <a class="top-photo" href="index.php?photo=p<?= (int) $tp['id'] ?>" title="<?= zm_home_escape($tpTitle) ?>">
-                <img src="<?= zm_home_escape(zm_thumb_url('p' . (int) $tp['id'], 240)) ?>" srcset="<?= zm_home_escape(zm_thumb_srcset('p' . (int) $tp['id'], [160, 240, 320])) ?>" sizes="auto, 68px" alt="<?= zm_home_escape($tpTitle) ?>" loading="lazy" decoding="async">
-                <span class="top-photo-meta"><span class="top-photo-title"><?= zm_home_escape($tpTitle) ?></span><span class="top-photo-likes">♥ <?= (int) $tp['like_count'] ?></span></span>
-              </a>
+              <?php
+                $tpUploaderName = trim((string) ($tp['uploader_display_name'] ?? ''));
+                if ($tpUploaderName === '') {
+                    $tpUploaderName = trim((string) ($tp['uploader_username'] ?? ''));
+                }
+              ?>
+              <div class="top-photo">
+                <a class="top-photo-image" href="index.php?photo=p<?= (int) $tp['id'] ?>" title="<?= zm_home_escape($tpTitle) ?>">
+                  <img src="<?= zm_home_escape(zm_thumb_url('p' . (int) $tp['id'], 240)) ?>" srcset="<?= zm_home_escape(zm_thumb_srcset('p' . (int) $tp['id'], [160, 240, 320])) ?>" sizes="auto, 68px" alt="<?= zm_home_escape($tpTitle) ?>" loading="lazy" decoding="async">
+                </a>
+                <span class="top-photo-meta">
+                  <a class="top-photo-title" href="index.php?photo=p<?= (int) $tp['id'] ?>" title="<?= zm_home_escape($tpTitle) ?>"><?= zm_home_escape($tpTitle) ?></a>
+                  <?php if ($tpUploaderName !== '' && !empty($tp['uploader_id']) && !empty($tp['uploader_username'])): ?>
+                    <a class="top-photo-author" href="<?= zm_home_escape(zm_profile_path((string) $tp['uploader_username'], (int) $tp['uploader_id'])) ?>" title="Zobacz profil użytkownika <?= zm_home_escape($tpUploaderName) ?>"><?= zm_home_escape($tpUploaderName) ?></a>
+                  <?php elseif ($tpUploaderName !== ''): ?>
+                    <span class="top-photo-author"><?= zm_home_escape($tpUploaderName) ?></span>
+                  <?php endif; ?>
+                  <span class="top-photo-likes">♥ <?= (int) $tp['like_count'] ?></span>
+                </span>
+              </div>
             <?php endforeach; ?>
           </div>
         <?php else: ?>
