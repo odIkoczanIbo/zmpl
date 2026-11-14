@@ -2863,20 +2863,44 @@ $uploadLimits = [
   .scroll-top-btn.visible{ opacity:1; visibility:visible; transform:translateY(0); }
   .scroll-top-btn:hover{ border-color:var(--gold,#c9a227); color:var(--gold,#c9a227); }
   .scroll-top-btn svg{ display:block; width:20px; height:20px; flex:0 0 auto; }
+  .scroll-back-btn{
+    position:fixed; right:72px; bottom:18px; z-index:50;
+    width:46px; height:46px; border-radius:50%; padding:0;
+    background:var(--card,#1b2a21); border:1px solid var(--line-strong,rgba(255,255,255,.25));
+    color:var(--ink,#e8efe9); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.25);
+    opacity:0; visibility:hidden; transform:translateY(10px);
+    transition:opacity .25s ease, transform .25s ease, visibility .25s, border-color .2s, color .2s;
+  }
+  .scroll-back-btn.visible{ opacity:1; visibility:visible; transform:translateY(0); }
+  .scroll-back-btn:hover{ border-color:var(--gold,#c9a227); color:var(--gold,#c9a227); }
+  .scroll-back-btn svg{ display:block; width:20px; height:20px; flex:0 0 auto; }
   @media (max-width:640px){
     .scroll-top-btn{ right:14px; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); width:44px; height:44px; }
+    .scroll-back-btn{ right:66px; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); width:44px; height:44px; }
   }
 </style>
+<button type="button" class="scroll-back-btn" id="scrollBackBtn" aria-label="Wróć do poprzedniej strony" title="Wstecz">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+</button>
 <button type="button" class="scroll-top-btn" id="scrollTopBtn" aria-label="Przewiń do góry" title="Do góry">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
 </button>
 <script>
 (function(){
   var btn = document.getElementById('scrollTopBtn');
+  var backBtn = document.getElementById('scrollBackBtn');
   if(!btn) return;
   function toggle(){
     var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-    btn.classList.toggle('visible', y > 400);
+    var visible = y > 400;
+    btn.classList.toggle('visible', visible);
+    if(backBtn) backBtn.classList.toggle('visible', visible);
+  }
+  if(backBtn){
+    backBtn.addEventListener('click', function(){
+      window.history.back();
+    });
   }
   btn.addEventListener('click', function(){
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
