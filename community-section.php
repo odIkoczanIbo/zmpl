@@ -34,17 +34,12 @@
                     && ((int) round(microtime(true) * 1000) - $cSeenMs) <= 600000;
               ?>
               <li class="contrib-card">
-                <!-- Awatar celowo NIE jest linkiem. Kiedy był, każde dotknięcie
-                     w okolicy „użytkownika” trafiało w <a> i wychodziło na
-                     profil, a przeglądarka podświetlała cały wiersz i rysowała
-                     kreski — wyglądało to, jakby cała karta była linkiem.
-                     Sekcja ma być tylko do odczytu; do profilu prowadzi
-                     przycisk „konto” w nagłówku. -->
-                <span class="member-avatar" aria-hidden="true">
-                  <?php if ($cAvatar !== ''): ?><img src="<?= zm_home_escape($cAvatar) ?>" alt=""><?php else: ?><?= zm_home_escape($cInit) ?><?php endif; ?>
-                  <?php if ($cOnline): ?><span class="online-dot" title="Aktywny teraz"></span><?php endif; ?>
-                </span>
-                <div class="contrib-body">
+                <a class="contrib-card-link" href="<?= zm_home_escape(zm_profile_path((string) $c['username'], (int) $c['id'])) ?>" aria-label="Zobacz profil: <?= zm_home_escape($cName) ?>">
+                  <span class="member-avatar" aria-hidden="true">
+                    <?php if ($cAvatar !== ''): ?><img src="<?= zm_home_escape($cAvatar) ?>" alt=""><?php else: ?><?= zm_home_escape($cInit) ?><?php endif; ?>
+                    <?php if ($cOnline): ?><span class="online-dot" title="Aktywny teraz"></span><?php endif; ?>
+                  </span>
+                  <div class="contrib-body">
                   <div class="contrib-top">
                     <!-- Jak punkty: numer rysuje CSS z atrybutu, więc w DOM nie ma
                          tekstu, którego system mógłby podświetlić. Numer jest
@@ -58,7 +53,7 @@
                          najechaniu — sama nazwa. Bez podkreślenia, bo
                          .community-panel blokuje zaznaczanie i podświetlenie
                          dotyku, więc nie wychodzi efekt „linka”. -->
-                    <a class="member-name contrib-name" href="<?= zm_home_escape(zm_profile_path((string) $c['username'], (int) $c['id'])) ?>" title="Profil: <?= zm_home_escape($cName) ?>"><?= zm_home_escape($cName) ?></a>
+                    <span class="member-name contrib-name"><?= zm_home_escape($cName) ?></span>
                     <!-- Liczba punktów NIE jest w DOM jako tekst — rysuje ją CSS
                          z atrybutu data-pts. Dzięki temu system nie ma czego
                          zaznaczyć ani „wygoogluć”: to jedyny sposób, żeby
@@ -79,7 +74,8 @@
                       <span class="contrib-chip contrib-chip-muted" title="Jeszcze nie ma wkładu">początkujący</span>
                     <?php endif; ?>
                   </div>
-                </div>
+                  </div>
+                </a>
               </li>
             <?php endforeach; ?>
           </ol>
