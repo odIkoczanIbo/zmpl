@@ -526,6 +526,13 @@ button.social-count:hover b{ color:var(--gold) }
 #pplList .people-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 11px}
 #pplList .people-main{display:flex;align-items:center;gap:11px;min-width:0;flex:1 1 190px;color:inherit;text-decoration:none}
 #pplList .people-main:hover .member-name{color:var(--gold)}
+.people-search{
+  display:block;width:100%;box-sizing:border-box;margin:12px 0 0;padding:9px 12px;
+  border:1px solid var(--line-strong);border-radius:9px;background:var(--card);
+  color:var(--ink);font:12px 'Inter',sans-serif;outline:none;
+}
+.people-search:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,162,39,.12)}
+.people-search::placeholder{color:var(--ink-dim)}
 #pplList .people-actions{display:flex;flex-wrap:wrap;gap:5px;margin-left:auto}
 #pplList .people-action{appearance:none;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:var(--card);color:var(--ink-dim);font:10px 'JetBrains Mono',monospace;cursor:pointer;white-space:nowrap}
 #pplList .people-action:hover{border-color:var(--line-strong);color:var(--ink)}
@@ -1531,7 +1538,7 @@ button.social-count:hover b{ color:var(--gold) }
 })();
 </script>
 
-<?php if ($visible && $isPublic && $viewer !== null): ?>
+<?php if ($visible && ($isPublic || $isOwner) && $viewer !== null): ?>
 <!-- Lista osób: kto obserwuje ten profil i kogo on obserwuje. Otwiera ją klik
      w liczniki przy przyciskach obserwowania; dane z social-api.php?action=people -->
 <div class="rk-backdrop" id="pplBackdrop" hidden>
@@ -1539,6 +1546,9 @@ button.social-count:hover b{ color:var(--gold) }
     <button type="button" class="rk-close" id="pplClose" aria-label="Zamknij">×</button>
     <h2 id="pplTitle">Obserwujący</h2>
     <p class="note" id="pplSub"></p>
+    <?php if ($isOwner): ?>
+      <input type="search" class="people-search" id="pplSearch" placeholder="Szukaj użytkownika…" aria-label="Szukaj użytkownika">
+    <?php endif; ?>
     <div class="sub-list" id="pplList" style="margin-top:16px"><p class="note">Wczytywanie…</p></div>
   </div>
 </div>
@@ -1549,6 +1559,7 @@ button.social-count:hover b{ color:var(--gold) }
   const listBox  = document.getElementById('pplList');
   const titleEl  = document.getElementById('pplTitle');
   const subEl    = document.getElementById('pplSub');
+  const searchEl = document.getElementById('pplSearch');
   const closeBtn = document.getElementById('pplClose');
   const myId     = <?= (int) $row['id'] ?>;
   const CAN_MANAGE = <?= !empty($isOwner) ? 'true' : 'false' ?>;
@@ -1610,23 +1621,40 @@ button.social-count:hover b{ color:var(--gold) }
     return data;
   }
 
+  let currentItems = [];
+  function renderPeople(){
+    const q = searchEl ? searchEl.value.trim().toLocaleLowerCase('pl') : '';
+    const filtered = currentItems.filter(u => {
+      if(!q) return true;
+      return [u.name, u.username, u.rankName, u.specialRankName, u.isAdmin ? 'administrator' : '']
+        .filter(Boolean).join(' ').toLocaleLowerCase('pl').includes(q);
+    });
+    if(!filtered.length){
+      listBox.innerHTML = currentItems.length
+        ? '<p class="people-list-empty">Nie znaleziono użytkownika pasującego do wyszukiwania.</p>'
+        : '<p class="people-list-empty">' + (currentMode === 'following' ? 'Nie obserwujesz już żadnych użytkowników.' : 'Ten profil nie ma jeszcze obserwujących.') + '</p>';
+      return;
+    }
+    listBox.innerHTML = filtered.map(personHtml).join('');
+  }
+
   async function load(mode){
     currentMode = mode;
+    if(searchEl) searchEl.value = '';
+    currentItems = [];
     listBox.innerHTML = '<p class="note">Wczytywanie…</p>';
     try{
       const res = await fetch(SAPI + '?action=people&user=' + myId + '&mode=' + mode + '&limit=200', {credentials:'include'});
       const data = await res.json();
       if(!data || !data.ok){ listBox.innerHTML = '<p class="note">Nie udało się wczytać listy.</p>'; return; }
-      const items = data.items || [];
-      if(!items.length){
-        listBox.innerHTML = '<p class="people-list-empty">' + (mode === 'following' ? 'Nie obserwujesz już żadnych użytkowników.' : 'Ten profil nie ma jeszcze obserwujących.') + '</p>';
-        return;
-      }
-      listBox.innerHTML = items.map(personHtml).join('');
+      currentItems = Array.isArray(data.items) ? data.items : [];
+      renderPeople();
     }catch(_){
       listBox.innerHTML = '<p class="note">Błąd połączenia z serwerem.</p>';
     }
   }
+
+  if(searchEl) searchEl.addEventListener('input', renderPeople);
 
   listBox.addEventListener('click', async e => {
     const button = e.target.closest('[data-person-action]');
