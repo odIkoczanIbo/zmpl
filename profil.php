@@ -536,6 +536,8 @@ button.social-count:hover b{ color:var(--gold) }
 #pplList .people-actions{display:flex;flex-wrap:wrap;gap:5px;margin-left:auto}
 #pplList .people-action{appearance:none;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:var(--card);color:var(--ink-dim);font:10px 'JetBrains Mono',monospace;cursor:pointer;white-space:nowrap}
 #pplList .people-action:hover{border-color:var(--line-strong);color:var(--ink)}
+#pplList .people-message-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;padding:0}
+#pplList .people-message-icon svg{display:block;width:15px;height:15px}
 #pplList .people-action.danger{color:#d98275}
 #pplList .people-action:disabled{opacity:.55;cursor:wait}
 #pplList .people-action-status{flex-basis:100%;margin:0 0 0 49px;color:var(--ink-dim);font-size:11px}
@@ -1599,7 +1601,7 @@ button.social-count:hover b{ color:var(--gold) }
       : `<span class="people-main" data-private="1">${inner}</span>`;
     let actions = '';
     if(CAN_MANAGE && id > 0 && id !== myId){
-      const message = u.url ? `<a class="people-action" href="${esc(messageUrl(id))}">Wyślij wiadomość</a>` : '';
+      const message = u.url ? `<a class="people-action people-message-icon" href="${esc(messageUrl(id))}" title="Wyślij wiadomość" aria-label="Wyślij wiadomość"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></a>` : '';
       const unfollow = currentMode === 'following'
         ? `<button type="button" class="people-action danger" data-person-action="unfollow" data-user="${id}">Przestań obserwować</button>`
         : '';
