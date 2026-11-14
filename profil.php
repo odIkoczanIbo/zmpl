@@ -523,6 +523,15 @@ button.social-count:hover b{ color:var(--gold) }
 #pplList .people-chip.admin{border-color:rgba(201,162,39,.5);color:var(--gold)}
 #pplList .people-private{margin-left:auto;flex:0 0 auto}
 #pplList .people-list-empty{margin:0;padding:18px 10px;color:var(--ink-dim);font-size:13px;line-height:1.5}
+#pplList .people-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 11px}
+#pplList .people-main{display:flex;align-items:center;gap:11px;min-width:0;flex:1 1 190px;color:inherit;text-decoration:none}
+#pplList .people-main:hover .member-name{color:var(--gold)}
+#pplList .people-actions{display:flex;flex-wrap:wrap;gap:5px;margin-left:auto}
+#pplList .people-action{appearance:none;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:var(--card);color:var(--ink-dim);font:10px 'JetBrains Mono',monospace;cursor:pointer;white-space:nowrap}
+#pplList .people-action:hover{border-color:var(--line-strong);color:var(--ink)}
+#pplList .people-action.danger{color:#d98275}
+#pplList .people-action:disabled{opacity:.55;cursor:wait}
+#pplList .people-action-status{flex-basis:100%;margin:0 0 0 49px;color:var(--ink-dim);font-size:11px}
 @media(max-width:480px){
   #pplList .people-row{gap:9px;padding:8px 6px}
   #pplList .member-avatar{width:36px;height:36px;flex-basis:36px}
@@ -1542,18 +1551,23 @@ button.social-count:hover b{ color:var(--gold) }
   const subEl    = document.getElementById('pplSub');
   const closeBtn = document.getElementById('pplClose');
   const myId     = <?= (int) $row['id'] ?>;
-  const SAPI     = <?= json_encode((zm_base_path() === '' ? '' : zm_base_path()) . '/social-api.php') ?>;
+  const CAN_MANAGE = <?= !empty($isOwner) ? 'true' : 'false' ?>;
+  const CSRF     = <?= json_encode(zm_csrf_token()) ?>;
+  const BASE     = <?= json_encode(zm_base_path() === '' ? '' : zm_base_path()) ?>;
+  const SAPI     = BASE + '/social-api.php';
+  let currentMode = 'followers';
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const initialsOf = name => {
     const s = String(name == null ? '' : name).trim();
     return s ? s.slice(0,1).toUpperCase() : '?';
   };
-
+  const messageUrl = id => BASE + '/wiadomosci.php?to=' + encodeURIComponent(id);
   const open = () => { backdrop.hidden = false; requestAnimationFrame(() => backdrop.classList.add('open')); closeBtn && closeBtn.focus(); };
   const close = () => { backdrop.classList.remove('open'); setTimeout(() => { backdrop.hidden = true; }, 220); };
 
   function personHtml(u){
+    const id = Number(u.id) || 0;
     const avatar = u.avatar
       ? `<img src="${esc(u.avatar)}" alt="" loading="lazy">`
       : esc(initialsOf(u.name));
@@ -1569,20 +1583,43 @@ button.social-count:hover b{ color:var(--gold) }
       + `<span class="member-handle">@${esc(u.username)}</span>`
       + badgesHtml
       + '</span>';
-    return u.url
-      ? `<a class="member-card people-row" href="${esc(u.url)}">${inner}</a>`
-      : `<div class="member-card people-row" data-private="1">${inner}</div>`;
+    const profile = u.url
+      ? `<a class="people-main" href="${esc(u.url)}">${inner}</a>`
+      : `<span class="people-main" data-private="1">${inner}</span>`;
+    let actions = '';
+    if(CAN_MANAGE && id > 0 && id !== myId){
+      const message = u.url ? `<a class="people-action" href="${esc(messageUrl(id))}">Wyślij wiadomość</a>` : '';
+      const unfollow = currentMode === 'following'
+        ? `<button type="button" class="people-action danger" data-person-action="unfollow" data-user="${id}">Przestań obserwować</button>`
+        : '';
+      const block = `<button type="button" class="people-action danger" data-person-action="block" data-user="${id}">Zablokuj</button>`;
+      actions = `<span class="people-actions">${message}${unfollow}${block}</span>`;
+    }
+    return `<div class="member-card people-row" data-person-id="${id}">${profile}${actions}</div>`;
+  }
+
+  async function postAction(action, userId){
+    const res = await fetch(SAPI, {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action, user:userId, csrf:CSRF})
+    });
+    const data = await res.json().catch(() => null);
+    if(res.status === 401) throw new Error('Musisz się zalogować ponownie.');
+    if(!res.ok || !data || data.error) throw new Error(data && data.message ? data.message : 'Nie udało się wykonać tej czynności.');
+    return data;
   }
 
   async function load(mode){
+    currentMode = mode;
     listBox.innerHTML = '<p class="note">Wczytywanie…</p>';
     try{
-      const res = await fetch(SAPI + '?action=people&user=' + myId + '&mode=' + mode + '&limit=200', { credentials:'include' });
+      const res = await fetch(SAPI + '?action=people&user=' + myId + '&mode=' + mode + '&limit=200', {credentials:'include'});
       const data = await res.json();
       if(!data || !data.ok){ listBox.innerHTML = '<p class="note">Nie udało się wczytać listy.</p>'; return; }
       const items = data.items || [];
       if(!items.length){
-        listBox.innerHTML = '<p class="people-list-empty">' + (mode === 'following' ? 'Ten profil nie obserwuje jeszcze nikogo.' : 'Ten profil nie ma jeszcze obserwujących.') + '</p>';
+        listBox.innerHTML = '<p class="people-list-empty">' + (mode === 'following' ? 'Nie obserwujesz już żadnych użytkowników.' : 'Ten profil nie ma jeszcze obserwujących.') + '</p>';
         return;
       }
       listBox.innerHTML = items.map(personHtml).join('');
@@ -1590,6 +1627,36 @@ button.social-count:hover b{ color:var(--gold) }
       listBox.innerHTML = '<p class="note">Błąd połączenia z serwerem.</p>';
     }
   }
+
+  listBox.addEventListener('click', async e => {
+    const button = e.target.closest('[data-person-action]');
+    if(!button) return;
+    const userId = Number(button.dataset.user);
+    const action = button.dataset.personAction;
+    if(!userId || button.disabled) return;
+    if(action === 'unfollow' && !window.confirm('Przestać obserwować tego użytkownika?')) return;
+    if(action === 'block' && !window.confirm('Zablokować tego użytkownika? Nie będzie mógł Cię obserwować ani wysyłać Ci wiadomości.')) return;
+    button.disabled = true;
+    try{
+      if(action === 'unfollow'){
+        const data = await postAction('follow_toggle', userId);
+        if(data.following) throw new Error('Użytkownik nadal znajduje się na liście obserwowanych.');
+        const row = button.closest('[data-person-id]');
+        if(row) row.remove();
+        const count = document.getElementById('followingCount');
+        if(count && typeof data.followingCount === 'number') count.textContent = data.followingCount;
+        if(!listBox.querySelector('[data-person-id]')) listBox.innerHTML = '<p class="people-list-empty">Nie obserwujesz już żadnych użytkowników.</p>';
+      }else if(action === 'block'){
+        await postAction('block_toggle', userId);
+        button.textContent = 'Zablokowano';
+        button.disabled = true;
+        button.title = 'Użytkownik został zablokowany';
+      }
+    }catch(err){
+      window.alert(err && err.message ? err.message : 'Nie udało się wykonać tej czynności.');
+      button.disabled = false;
+    }
+  });
 
   document.querySelectorAll('[data-profile-people]').forEach(btn => {
     btn.addEventListener('click', () => {
