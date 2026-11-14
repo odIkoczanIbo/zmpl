@@ -164,6 +164,18 @@ header('X-Robots-Tag: noindex, nofollow', false);
   .modal-confirm{background:var(--clay); color:#fff; border:none; font-family:'JetBrains Mono',monospace; font-size:12px; padding:9px 16px; border-radius:18px; cursor:pointer}
   .modal-confirm.save{background:var(--gold); color:#141c16}
   .modal-confirm:disabled{opacity:.55; cursor:default}
+  .user-delete-dialog{width:min(440px,100%); padding:24px}
+  .user-delete-mark{width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(190,83,65,.35);border-radius:12px;color:var(--clay);background:rgba(190,83,65,.08);font-size:20px;margin-bottom:16px}
+  .user-delete-dialog h2{margin:0 0 7px;font-size:21px}
+  .user-delete-dialog .delete-lead{color:var(--ink-dim);font-size:13px;line-height:1.6;margin:0 0 14px}
+  .user-delete-name{padding:11px 13px;background:var(--card);border:1px solid var(--line-strong);border-radius:9px;margin:0 0 13px;overflow-wrap:anywhere}
+  .user-delete-name strong{display:block;font-family:'Fraunces',serif;font-size:16px;font-weight:500;color:var(--ink)}
+  .user-delete-name span{display:block;font:11px 'JetBrains Mono',monospace;color:var(--ink-dim);margin-top:3px}
+  .user-delete-effects{font-size:12px;line-height:1.65;color:var(--ink-dim);padding-left:18px;margin:0 0 16px}
+  .user-delete-warning{font-size:11px;line-height:1.5;color:var(--clay);margin:0 0 17px}
+  .user-delete-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+  .user-delete-submit{background:var(--clay);color:#fff;border:0;border-radius:18px;padding:10px 16px;font:12px 'JetBrains Mono',monospace;cursor:pointer}
+  .user-delete-submit:disabled{opacity:.55;cursor:wait}
   .admin-upload-preview{display:none; align-items:center; gap:12px; margin:0 0 14px; padding:10px; background:var(--card); border:1px solid var(--line-strong); border-radius:10px}
   .admin-upload-preview img{display:block; width:96px; height:96px; object-fit:cover; border-radius:8px; background:var(--bg); border:1px solid var(--line-strong); flex-shrink:0}
   .admin-upload-preview .name{font-size:13px; font-weight:500; overflow-wrap:anywhere}
@@ -1495,6 +1507,28 @@ header('X-Robots-Tag: noindex, nofollow', false);
         <h3>Historia punktów</h3>
         <div class="log-list admin-points-history" id="umHistory"><p class="muted">Ładowanie…</p></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="usrDeleteConfirm" role="dialog" aria-modal="true" aria-labelledby="usrDeleteTitle" aria-describedby="usrDeleteDescription" style="display:none;">
+  <div class="modal user-delete-dialog">
+    <div class="user-delete-mark" aria-hidden="true">!</div>
+    <h2 id="usrDeleteTitle">Usunąć konto?</h2>
+    <p class="delete-lead" id="usrDeleteDescription">Za chwilę trwale usuniesz konto użytkownika z archiwum zMogilna.</p>
+    <div class="user-delete-name">
+      <strong id="usrDeleteName">—</strong>
+      <span id="usrDeleteLogin">—</span>
+    </div>
+    <ul class="user-delete-effects">
+      <li>Zdjęcia pozostaną w galerii, ale zostaną anonimowe.</li>
+      <li>Komentarze pozostaną, lecz bez przypisanego autora.</li>
+      <li>Usunięte zostaną punkty, polubienia, ulubione i awatar.</li>
+    </ul>
+    <p class="user-delete-warning">Tej operacji nie można cofnąć.</p>
+    <div class="user-delete-actions">
+      <button type="button" class="modal-cancel" id="usrDeleteCancel">Anuluj</button>
+      <button type="button" class="user-delete-submit" id="usrDeleteConfirmBtn">Usuń konto</button>
     </div>
   </div>
 </div>
@@ -5813,17 +5847,37 @@ header('X-Robots-Tag: noindex, nofollow', false);
     }
   }
 
+  function closeDeleteConfirm(){
+    el('usrDeleteConfirm').style.display = 'none';
+  }
+
+  function openDeleteConfirm(){
+    const u = state.byId.get(openId);
+    if(!u || !openId) return;
+    el('usrDeleteName').textContent = u.display_name || u.username || el('usrModalName').textContent;
+    el('usrDeleteLogin').textContent = '@' + (u.username || '');
+    el('usrDeleteConfirm').style.display = 'flex';
+    el('usrDeleteConfirmBtn').focus();
+  }
+
   async function deleteUser(){
-    if(!confirm('Usunąć konto „' + el('usrModalName').textContent + '”?\n'
-      + 'Zdjęcia zostają (stają się anonimowe), komentarze również. '
-      + 'Usuwają się: punkty i ich historia, polubienia, ulubione i awatar. Tej operacji nie da się cofnąć.')) return;
-    const d = await call('user_delete', { id: openId });
-    if(d && d.ok){
-      toast('Konto zostało usunięte.');
-      closeUser();
-      refresh();
-      // autorzy w komentarzach zmieniają się na „Anonim”, a nagłówki statystyk na górze nie
-      afterUserChange(true);
+    if(!openId) return;
+    const btn = el('usrDeleteConfirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Usuwanie…';
+    try{
+      const d = await call('user_delete', { id: openId });
+      if(d && d.ok){
+        closeDeleteConfirm();
+        toast('Konto zostało usunięte.');
+        closeUser();
+        refresh();
+        // autorzy w komentarzach zmieniają się na „Anonim”, a nagłówki statystyk na górze nie
+        afterUserChange(true);
+      }
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'Usuń konto';
     }
   }
 
@@ -5976,7 +6030,10 @@ header('X-Robots-Tag: noindex, nofollow', false);
   el('umSpBtn').addEventListener('click', setSpecialRank);
   el('umRoleBtn').addEventListener('click', toggleRole);
   el('umBanBtn').addEventListener('click', toggleBan);
-  el('umDeleteBtn').addEventListener('click', deleteUser);
+  el('umDeleteBtn').addEventListener('click', openDeleteConfirm);
+  el('usrDeleteCancel').addEventListener('click', closeDeleteConfirm);
+  el('usrDeleteConfirmBtn').addEventListener('click', deleteUser);
+  el('usrDeleteConfirm').addEventListener('click', e => { if(e.target === el('usrDeleteConfirm')) closeDeleteConfirm(); });
 
   el('usrRanksBtn').addEventListener('click', openRanks);
   el('usrRanksClose').addEventListener('click', closeRanks);
@@ -5995,7 +6052,8 @@ header('X-Robots-Tag: noindex, nofollow', false);
 
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape'){
-      if(el('usrModalBackdrop').style.display === 'flex') closeUser();
+      if(el('usrDeleteConfirm').style.display === 'flex') closeDeleteConfirm();
+      else if(el('usrModalBackdrop').style.display === 'flex') closeUser();
       else if(el('usrAddBackdrop').style.display === 'flex') closeAddUser();
       else if(el('usrRanksBackdrop').style.display === 'flex') closeRanks();
     }
