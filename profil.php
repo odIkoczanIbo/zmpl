@@ -498,6 +498,36 @@ if ($metaDesc === '') { $metaDesc = 'Profil użytkownika na zmogilna.pl'; }
 button.social-count{ background:none; cursor:pointer; transition:border-color .2s,color .2s }
 button.social-count:hover{ border-color:var(--gold); color:var(--gold) }
 button.social-count:hover b{ color:var(--gold) }
+
+/* Lista obserwowanych i obserwujących — ten sam układ co „Ostatnio dołączyli”
+   na stronie głównej: avatar, nazwa i login, z zachowaniem odznak rang. */
+#pplList.sub-list{display:grid;gap:8px;margin-top:16px;max-height:min(58vh,560px);overflow-y:auto;padding:2px 4px 2px 0}
+#pplList .people-row{
+  display:flex;align-items:center;gap:11px;min-width:0;padding:9px;
+  border:1px solid transparent;border-radius:10px;text-decoration:none;
+  color:inherit;background:transparent;transition:background .2s,border-color .2s,transform .2s;
+}
+#pplList a.people-row:hover{background:var(--card);border-color:var(--line-strong);transform:translateX(2px)}
+#pplList .member-avatar{
+  position:relative;width:38px;height:38px;display:grid;place-items:center;
+  flex:0 0 38px;overflow:hidden;border-radius:50%;
+  background:linear-gradient(135deg,var(--teal),var(--gold));color:#fff;
+  font:500 14px 'Fraunces',serif;
+}
+#pplList .member-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+#pplList .member-text{display:block;min-width:0;flex:1}
+#pplList .member-name{display:flex;align-items:center;flex-wrap:wrap;gap:5px;min-width:0;color:var(--ink);font-size:13px;font-weight:600;line-height:1.4}
+#pplList .member-handle{display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-dim);font:10.5px 'JetBrains Mono',monospace}
+#pplList .people-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+#pplList .people-chip{display:inline-flex;align-items:center;max-width:100%;padding:2px 8px;border:1px solid var(--line-strong);border-radius:999px;background:var(--card);color:var(--ink-dim);font:9.5px 'JetBrains Mono',monospace;line-height:1.45}
+#pplList .people-chip.admin{border-color:rgba(201,162,39,.5);color:var(--gold)}
+#pplList .people-private{margin-left:auto;flex:0 0 auto}
+#pplList .people-list-empty{margin:0;padding:18px 10px;color:var(--ink-dim);font-size:13px;line-height:1.5}
+@media(max-width:480px){
+  #pplList .people-row{gap:9px;padding:8px 6px}
+  #pplList .member-avatar{width:36px;height:36px;flex-basis:36px}
+  #pplList .people-private{display:none}
+}
 </style>
 <script>
   (function(){
@@ -1524,23 +1554,24 @@ button.social-count:hover b{ color:var(--gold) }
   const close = () => { backdrop.classList.remove('open'); setTimeout(() => { backdrop.hidden = true; }, 220); };
 
   function personHtml(u){
-    const av = u.avatar
+    const avatar = u.avatar
       ? `<img src="${esc(u.avatar)}" alt="" loading="lazy">`
-      : '<span class="si-av">' + esc(initialsOf(u.name)) + '</span>';
+      : esc(initialsOf(u.name));
     const badges = [];
     if(u.isAdmin) badges.push('<span class="people-chip admin">Administrator</span>');
-    if(u.specialRankName) badges.push(`<span class="people-chip" style="border-color:hsl(${u.specialRankHue} 55% 45%);color:hsl(${u.specialRankHue} 65% 72%)">${esc(u.specialRankName)}</span>`);
+    if(u.specialRankName) badges.push(`<span class="people-chip" style="border-color:hsl(${Number(u.specialRankHue)||8} 55% 45%);color:hsl(${Number(u.specialRankHue)||8} 65% 72%)">${esc(u.specialRankName)}</span>`);
     if(u.rankName) badges.push(`<span class="people-chip">${esc(u.rankName)}</span>`);
-    const badgesHtml = badges.length ? `<div class="people-badges">${badges.join('')}</div>` : '';
-    const inner = av +
-      '<div>' +
-        `<div class="si-title">${esc(u.name)}${u.isPrivate ? ' <span class="people-chip">profil prywatny</span>' : ''}</div>` +
-        `<div class="si-meta">@${esc(u.username)}</div>` +
-        badgesHtml +
-      '</div>';
+    if(u.isPrivate) badges.push('<span class="people-chip">profil prywatny</span>');
+    const badgesHtml = badges.length ? `<span class="people-badges">${badges.join('')}</span>` : '';
+    const inner = `<span class="member-avatar">${avatar}</span>`
+      + '<span class="member-text">'
+      + `<span class="member-name">${esc(u.name)}</span>`
+      + `<span class="member-handle">@${esc(u.username)}</span>`
+      + badgesHtml
+      + '</span>';
     return u.url
-      ? `<a class="sub-item people-row" href="${esc(u.url)}">${inner}</a>`
-      : `<div class="sub-item people-row" data-private="1">${inner}</div>`;
+      ? `<a class="member-card people-row" href="${esc(u.url)}">${inner}</a>`
+      : `<div class="member-card people-row" data-private="1">${inner}</div>`;
   }
 
   async function load(mode){
@@ -1551,7 +1582,7 @@ button.social-count:hover b{ color:var(--gold) }
       if(!data || !data.ok){ listBox.innerHTML = '<p class="note">Nie udało się wczytać listy.</p>'; return; }
       const items = data.items || [];
       if(!items.length){
-        listBox.innerHTML = '<p class="note">' + (mode === 'following' ? 'Ten profil nie obserwuje nikogo.' : 'Ten profil nie ma jeszcze obserwujących.') + '</p>';
+        listBox.innerHTML = '<p class="people-list-empty">' + (mode === 'following' ? 'Ten profil nie obserwuje jeszcze nikogo.' : 'Ten profil nie ma jeszcze obserwujących.') + '</p>';
         return;
       }
       listBox.innerHTML = items.map(personHtml).join('');
@@ -1565,8 +1596,8 @@ button.social-count:hover b{ color:var(--gold) }
       const mode = btn.dataset.profilePeople === 'following' ? 'following' : 'followers';
       titleEl.textContent = mode === 'following' ? 'Obserwowani' : 'Obserwujący';
       subEl.textContent = mode === 'following'
-        ? 'Profile, które obserwuje ten użytkownik.'
-        : 'Osoby, które obserwują ten profil.';
+        ? 'Użytkownicy, których obserwuje ten profil — wraz z administratorami i rangami specjalnymi.'
+        : 'Użytkownicy, którzy obserwują ten profil — wraz z administratorami i rangami specjalnymi.';
       open();
       load(mode);
     });
